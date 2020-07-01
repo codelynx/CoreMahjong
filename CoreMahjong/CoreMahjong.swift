@@ -52,19 +52,55 @@ extension Array where Element: Equatable {
 
 // MARK: -
 
-public enum 和了役型: String {
-//	case 立直
-//	case 一発
-//	case 門前清自摸和
-//	case 役牌
+protocol 役規定 {
+	static var 上位下位役一覧: [(Self, Self)] { get }
+}
+
+public enum 役満型: String, 役規定 {
+	case 純正九蓮宝燈
+	case 九蓮宝燈
+	case 發なし緑一色
+	case 緑一色
+	case 国士無双十三面張
+	case 国士無双
+	case 四暗刻単騎
+	case 四暗刻
+	case 大三元
+	case 字一色
+	case 清老頭
+	case 四槓子
+	case 小四喜
+	case 大四喜
+	var 役満数: Int {
+		switch self {
+		case .純正九蓮宝燈: return 2
+		case .九蓮宝燈: return 1
+		case .發なし緑一色: return 2
+		case .緑一色: return 1
+		case .大四喜: return 2
+		case .小四喜: return 1
+		case .国士無双十三面張: return 2
+		case .国士無双: return 1
+		case .四暗刻単騎: return 2
+		case .四暗刻: return 1
+		case .大三元: return 1
+		case .字一色: return 1
+		case .清老頭: return 1
+		case .四槓子: return 1
+		}
+	}
+	static let 上位下位役一覧: [(Self, Self)] = [
+		(.国士無双十三面張, .国士無双),
+		(.四暗刻単騎, .四暗刻),
+		(.大四喜, .小四喜),
+		(.發なし緑一色, .緑一色)
+	]
+}
+
+public enum 役型: String, 役規定, Comparable {
 	case 断么九
 	case 平和
 	case 一盃口
-//	case 海底撈月
-//	case 河底撈魚
-//	case 嶺上開花
-//	case 槍槓
-//	case ダブル立直
 	case 三色同順
 	case 三色同刻
 	case 三暗刻
@@ -79,30 +115,83 @@ public enum 和了役型: String {
 	case 小三元
 	case 混老頭
 	case 清一色
-	case 四暗刻
-	case 大三元
-	case 国士無双
-	case 緑一色
-	case 字一色
-	case 清老頭
-	case 四槓子
-	case 小四喜
-	case 大四喜
-	case 九蓮宝燈
-//	case 地和
-//	case 天和
-	case 四暗刻単騎
-	case 国士無双十三面張
-	case 純正九蓮宝燈
-	case 發なし緑一色
+	var value: Int {
+		switch self {
+		case .清一色: return 6
+		case .小三元: return 4
+		case .二盃口: return 3
+		case .純全帯么九: return 3
+		case .混一色: return 3
+		case .混老頭: return 2
+		case .三色同順: return 2
+		case .一気通貫: return 2
+		case .混全帯么九: return 2
+		case .七対子: return 2
+		case .対々和: return 2
+		case .三暗刻: return 2
+		case .三色同刻: return 2
+		case .三槓子: return 2
+		case .断么九: return 1
+		case .一盃口: return 1
+		case .平和: return 1
+		}
+	}
+	func 翻数(副露: Bool) -> Int {
+		switch self {
+		// 喰い下がり有
+		case .三色同順: return 副露 ? 1: 2
+		case .混全帯么九: return 副露 ? 1 : 2
+		case .一気通貫: return 副露 ? 1: 2
+		case .純全帯么九: return 副露 ? 2 : 3
+		case .混一色: return 副露 ? 2 : 3
+		case .清一色: return 副露 ? 5 : 6
+		// 食い下がり無
+		case .小三元: return 4
+		case .二盃口: return 3
+		case .混老頭: return 2
+		case .七対子: return 2
+		case .対々和: return 2
+		case .三暗刻: return 2
+		case .三色同刻: return 2
+		case .三槓子: return 2
+		case .断么九: return 1
+		case .一盃口: return 1
+		case .平和: return 1
+		}
+	}
+	static let 上位下位役一覧: [(Self, Self)] = [
+		(.二盃口, .一盃口),
+		(.清一色, .混一色),
+		(.純全帯么九, .混全帯么九),
+		(.混老頭, .混全帯么九)
+	]
+	static public func < (lhs: Self, rhs: Self) -> Bool {
+		return false
+	}
 }
 
+public enum 和了役表型: Hashable {
+	case 役満([役満型: Int])
+	case 役([役型: Int])
+	var 役満群: Set<役満型> {
+		switch self {
+		case .役満(let 役満和了表): return Set(役満和了表.map { $0.key })
+		default: return Set()
+		}
+	}
+	var 役群: Set<役型> {
+		switch self {
+		case .役(let 役和了表): return Set(役和了表.map { $0.key })
+		default: return Set()
+		}
+	}
+}
 
-extension Set where Element == 和了役型 {
-	init(役列: [和了役型], 上位下位役一覧: [(和了役型, 和了役型)]) {
-		var 役群 = Set<和了役型>(役列)
+extension Set where Element == 役満型 {
+	init(役列: [役満型]) {
+		var 役群 = Set<役満型>(役列)
 		for 役 in 役列 {
-			for (上位役, 下位役) in 上位下位役一覧 {
+			for (上位役, 下位役) in 役満型.上位下位役一覧 {
 				if [上位役, 下位役].contains(役) {
 					if 役群.contains(上位役), 上位役 != 役  {
 						役群.remove(役)
@@ -112,33 +201,37 @@ extension Set where Element == 和了役型 {
 		}
 		self.init(役群)
 	}
-	func 翻数(副露: Bool) -> Int {
-		return self.map { 役 in
-			if let 翻数 = 翻数表[役] {
-				return 翻数 - (副露 && 喰い下がり役.contains(役) ? 1 : 0)
-			}
-			return 0
-		}.reduce(0, +)
+	var 役満表: [役満型: Int] {
+		return self.reduce(into: [役満型: Int]()) { (表, 役満) in
+			表[役満] = 役満.役満数
+		}
 	}
-	func 役満数() -> Int {
-		return self.map { 役満役数表[$0] ?? 0}.reduce(0, +)
-	}
+	var 役満数: Int { return self.map { $0.役満数 }.reduce(0, +) }
 }
 
-//
-let 上位下位役満一覧: [(和了役型, 和了役型)] = [
-	(.国士無双十三面張, .国士無双),
-	(.四暗刻単騎, .四暗刻),
-	(.大四喜, .小四喜),
-	(.發なし緑一色, .緑一色)
-]
-
-let 上位下位役一覧: [(和了役型, 和了役型)] = [
-	(.二盃口, .一盃口),
-	(.清一色, .混一色),
-	(.純全帯么九, .混全帯么九),
-	(.混老頭, .混全帯么九)
-]
+extension Set where Element == 役型 {
+	init(役列: [役型]) {
+		var 役群 = Set<役型>(役列)
+		for 役 in 役列 {
+			for (上位役, 下位役) in 役型.上位下位役一覧 {
+				if [上位役, 下位役].contains(役) {
+					if 役群.contains(上位役), 上位役 != 役  {
+						役群.remove(役)
+					}
+				}
+			}
+		}
+		self.init(役群)
+	}
+	func 役表(副露: Bool) -> [役型: Int] {
+		return self.reduce(into: [役型: Int]()) { (表, 役) in
+			表[役] = 役.翻数(副露: 副露)
+		}
+	}
+	func 翻数(副露: Bool) -> Int {
+		return self.map { $0.翻数(副露: 副露) }.reduce(0, +)
+	}
+}
 
 // MARK: -
 
@@ -591,12 +684,6 @@ struct 手牌型: CustomStringConvertible {
 	var description: String {
 		return "[ " + (手牌列.map { String($0.牌識別子.character) }.joined()) + " | " + (副露面子列.map { $0.牌列.string }.joined(separator: " ")) + " ]"
 	}
-
-	/*
-	func 和了(牌: 牌型) -> [和了役型] {
-		return []
-	}
-	*/
 }
 
 func 四面子一雀頭探索(牌列: [牌型], 副露面子列: [面子型], 和了牌: 牌型) -> [(面子列: [面子型], 雀頭: 対子型)] {
@@ -762,53 +849,12 @@ func 平和判定(_ 面子列: [面子型], _ 頭: 対子型, 役風牌列: [場
 	return false
 }
 
-//
-
 public enum 和了型 {
 	case 自摸
-	case 栄和
+	case 栄和7
 }
 
-let 役満役数表: [和了役型: Int] = [
-	.純正九蓮宝燈: 2,
-	.大四喜: 2,
-	.国士無双十三面張: 2,
-	.四暗刻単騎: 2,
-	.国士無双: 1,
-	.四暗刻: 1,
-	.大三元: 1,
-	.字一色: 1,
-	.小四喜: 1,
-	.緑一色: 1,
-	.清老頭: 1,
-	.四槓子: 1
-]
-
-let 翻数表: [和了役型: Int] = [
-	.清一色: 6,
-	.小三元: 4,
-	.二盃口: 3,
-	.純全帯么九: 3,
-	.混一色: 3,
-	.混老頭: 2,
-	.三色同順: 2,
-	.一気通貫: 2,
-	.混全帯么九: 2,
-	.七対子: 2,
-	.対々和: 2,
-	.三暗刻: 2,
-	.三色同刻: 2,
-	.三槓子: 2,
-	.断么九: 1,
-	.一盃口: 1,
-	.平和: 1
-]
-
-let 喰い下がり役: [和了役型] = [
-	.三色同順, .混全帯么九, .一気通貫, .純全帯么九, .混一色, .清一色
-]
-
-func 和了判定(手牌列: [牌型], 副露面子列: [面子型], 和了牌: 牌型) -> Set<和了役型> {
+func 和了判定(手牌列: [牌型], 副露面子列: [面子型], 和了牌: 牌型) -> 和了役表型? {
 	assert(和了牌.和了牌)
 	assert(手牌列.filter { $0.和了牌 }.count == 0)
 	assert(副露面子列.filter { $0.含和了牌判定 }.count == 0)
@@ -818,12 +864,12 @@ func 和了判定(手牌列: [牌型], 副露面子列: [面子型], 和了牌: 
 
 	// 役満
 
-	let 役満I和了表列: [和了役型] = [
+	let 役満I和了表列: [役満型] = [
 		.純正九蓮宝燈: 純正九蓮宝燈判定(手牌列, 和了牌),
 		.国士無双十三面張: 国士無双十三面張判定(手牌列, 和了牌),
 		.国士無双: 国士無双判定(手牌列, 和了牌),
 	].filter { $0.value }.map { $0.key }
-	let 役満II和了表列: [[和了役型]] = 四面子一雀頭列.map { 四面子一雀頭 in
+	let 役満II和了表列: [[役満型]] = 四面子一雀頭列.map { 四面子一雀頭 in
 		let 面子列 = 四面子一雀頭.面子列
 		return [
 			.四暗刻単騎: 四暗刻単騎判定(面子列, 四面子一雀頭.雀頭),
@@ -837,19 +883,19 @@ func 和了判定(手牌列: [牌型], 副露面子列: [面子型], 和了牌: 
 			.四槓子: 四槓子判定(面子列, 四面子一雀頭.雀頭)
 		].filter { $0.value }.map { $0.key }
 	}
-	let 役満和了表列: [[和了役型]] = ([役満I和了表列] + 役満II和了表列).filter { $0.count > 0 }
-	let 役満群 = 役満和了表列.map { Set(役列: $0, 上位下位役一覧: 上位下位役満一覧) }.sorted { (役満群1, 役満群2) -> Bool in
-		役満群1.役満数() < 役満群2.役満数()
+	let 役満和了表列: [[役満型]] = ([役満I和了表列] + 役満II和了表列).filter { $0.count > 0 }
+	let 役満群 = 役満和了表列.map { Set(役列: $0) }.sorted { (役満群1, 役満群2) -> Bool in
+		役満群1.役満数 < 役満群2.役満数
 	}
 	if let 最高役満群 = 役満群.last {
-		return 最高役満群
+		return 和了役表型.役満(最高役満群.役満表)
 	}
 
 	//　１〜６翻までの役
 
-	let 和了役表列: [[和了役型]] = 四面子一雀頭列.map { 四面子一雀頭 in
+	let 和了役表列: [[役型: Int]] = 四面子一雀頭列.map { 四面子一雀頭 in
 		let 面子列 = 四面子一雀頭.面子列
-		return [
+		let 成立役列: [役型] = [
 			.清一色: 清一色判定(面子列, 四面子一雀頭.雀頭),
 			.混老頭: 混老頭判定(面子列, 四面子一雀頭.雀頭),
 			.小三元: 小三元判定(面子列, 四面子一雀頭.雀頭),
@@ -867,15 +913,18 @@ func 和了判定(手牌列: [牌型], 副露面子列: [面子型], 和了牌: 
 			.断么九: 断么九判定(面子列, 四面子一雀頭.雀頭),
 			.一盃口: 一盃口判定(面子列, 四面子一雀頭.雀頭)
 		].filter { $0.value }.map { $0.key }
-	}.sorted { (役列1, 役列2) -> Bool in
-		return Set(役列1).翻数(副露: 副露) < Set(役列2).翻数(副露: 副露)
+		return 成立役列.reduce(into: [役型: Int]()) { (表, 役) in
+			表[役] = 役.翻数(副露: 副露)
+		}
+	}.sorted { (役列1: [役型: Int], 役列2: [役型: Int]) -> Bool in
+		役列1.map { $0.value }.reduce(0, +) < 役列1.map { $0.value }.reduce(0, +)
 	}
-	if let 和了表 = 和了役表列.first {
-		return Set(和了表)
+	if let 最高役和了表 = 和了役表列.first {
+		return 和了役表型.役(最高役和了表)
 	}
 
 	// 役なし
-	return []
+	return nil
 }
 
 // 順子
